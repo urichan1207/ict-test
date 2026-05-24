@@ -111,6 +111,8 @@ body = '''<div class="app">
 </div>
 <div class="field"><label>体系表との対応（link）</label><input id="edLink"></div>
 <div class="field"><label>導入文（intro）</label><textarea id="edIntro"></textarea></div>
+<div class="field"><label>リスト（list・JSON形式）</label><textarea id="edList" placeholder='["項目1","項目2","項目3"]'></textarea></div>
+<div class="field"><label>テーブル（table・JSON形式）</label><textarea id="edTable" placeholder='{"head":["列1","列2"],"rows":[["値1","値2"]]}'></textarea></div>
 <div class="field"><label>問題文</label><textarea id="edQ" style="min-height:80px"></textarea></div>
 <div class="field"><label>選択肢A</label><input id="edA"></div>
 <div class="field"><label>選択肢B</label><input id="edB"></div>
@@ -255,6 +257,8 @@ function render(){{
   let body=`<span class="qk" style="background:${{k.c}}">${{k.l}}</span>`;
   if(q.link)body+=`<div class="qlink"><b>体系表との対応：</b>${{q.link}}</div>`;
   if(q.intro)body+=`<div class="qintro">${{q.intro}}</div>`;
+  if(q.list){{let listHtml='<div class="qlist">';q.list.forEach(item=>{{listHtml+=`<div>${{item}}</div>`;}});listHtml+='</div>';body+=listHtml;}}
+  if(q.table){{let tblHtml='<table class="qtable"><thead><tr>';q.table.head.forEach(h=>{{tblHtml+=`<th>${{h}}</th>`;}});tblHtml+='</tr></thead><tbody>';q.table.rows.forEach(row=>{{tblHtml+='<tr>';row.forEach(cell=>{{tblHtml+=`<td>${{cell}}</td>`;}});tblHtml+='</tr>';}});tblHtml+='</tbody></table>';body+=tblHtml;}}
   body+=`<div class="qt">${{q.q}}</div><div class="choices" id="chs"></div><div class="ex" id="ex"></div>`;
   document.getElementById('qc').innerHTML=body;
   const ch=document.getElementById('chs');
@@ -358,7 +362,7 @@ function openEdit(lv,i){{
   if(lv===null){{
     document.getElementById('editTitle').textContent='問題を追加';
     editLv=null;editIdx=null;
-    ['edLv','edKanten','edLink','edIntro','edQ','edA','edB','edC','edD','edAns','edExplain'].forEach(id=>{{
+    ['edLv','edKanten','edLink','edIntro','edList','edTable','edQ','edA','edB','edC','edD','edAns','edExplain'].forEach(id=>{{
       const el=document.getElementById(id);if(el.tagName==='SELECT')el.selectedIndex=0;else el.value='';}});
   }}else{{
     document.getElementById('editTitle').textContent='問題を編集';
@@ -368,6 +372,8 @@ function openEdit(lv,i){{
     document.getElementById('edKanten').value=q.kanten;
     document.getElementById('edLink').value=q.link||'';
     document.getElementById('edIntro').value=q.intro||'';
+    document.getElementById('edList').value=q.list?JSON.stringify(q.list):'';
+    document.getElementById('edTable').value=q.table?JSON.stringify(q.table):'';
     document.getElementById('edQ').value=q.q||'';
     document.getElementById('edA').value=q.choices[0]||'';
     document.getElementById('edB').value=q.choices[1]||'';
@@ -382,14 +388,18 @@ function closeEdit(){{document.getElementById('editModal').classList.remove('on'
 function saveEdit(){{
   const q={{
     kanten:document.getElementById('edKanten').value,
-    link:document.getElementById('edLink').value,
-    intro:document.getElementById('edIntro').value,
+    link:document.getElementById('edLink').value||undefined,
+    intro:document.getElementById('edIntro').value||undefined,
     q:document.getElementById('edQ').value,
     choices:[document.getElementById('edA').value,document.getElementById('edB').value,
              document.getElementById('edC').value,document.getElementById('edD').value],
     answer:parseInt(document.getElementById('edAns').value),
-    explain:document.getElementById('edExplain').value
+    explain:document.getElementById('edExplain').value||undefined
   }};
+  const listStr=document.getElementById('edList').value.trim();
+  if(listStr){{try{{q.list=JSON.parse(listStr);}}catch(e){{alert('リストのJSON形式が不正です');return;}}}}
+  const tableStr=document.getElementById('edTable').value.trim();
+  if(tableStr){{try{{q.table=JSON.parse(tableStr);}}catch(e){{alert('テーブルのJSON形式が不正です');return;}}}}
   if(!q.q){{alert('問題文を入力してください');return;}}
   const targetLv=document.getElementById('edLv').value;
   if(editLv!==null){{
